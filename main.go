@@ -8,6 +8,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// general response structure from data urls
+type Response struct {
+	Response struct {
+		Items []Item `json:"items"`
+	} `json:"response"`
+	HttpStatus int `json:"httpStatus"`
+}
+
+// items fields
+type Item struct {
+	CleanImage   string  `json:"cleanImage"`
+	Title        string  `json:"title"`
+	Url          string  `json:"url"`
+	CerebroScore float64 `json:"cerebro-score"`
+	HarvesterId  string  `json:"harvesterId"`
+	Type         string  `json:"type"`
+}
+
 var (
 	articleUrl          string = "https://storage.googleapis.com/aller-structure-task/articles.json"
 	contentMarketingUrl string = "https://storage.googleapis.com/aller-structure-task/contentmarketing.json"
@@ -32,7 +50,7 @@ func mixArticles(w http.ResponseWriter, r *http.Request) {
 	lenMarketing := len(marketingItems)
 
 	// our mixed content slice
-	var respContent []interface{}
+	var respContent []Item
 
 	var start, end, step int
 	// five articles step between ad
@@ -55,8 +73,7 @@ func mixArticles(w http.ResponseWriter, r *http.Request) {
 		// fill marketing items and prevent out of range panic
 		if mIdx+1 > lenMarketing {
 			// no items any more, insert default "Ad"
-			ad := make(map[string]interface{})
-			ad["type"] = "Ad"
+			ad := Item{Type: "Ad"}
 			respContent = append(respContent, ad)
 		} else {
 			// we have items, fill with given marketing content
@@ -71,7 +88,7 @@ func mixArticles(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get items from given url and return slice of items with interface type
-func getItems(url string) (items []interface{}) {
+func getItems(url string) (items []Item) {
 	resp, err := http.Get(url)
 	defer resp.Body.Close()
 
@@ -79,9 +96,9 @@ func getItems(url string) (items []interface{}) {
 		log.Fatalln(err)
 	}
 
-	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	var response Response
+	json.NewDecoder(resp.Body).Decode(&response)
 
-	items = result["response"].(map[string]interface{})["items"].([]interface{})
+	items = response.Response.Items
 	return
 }
